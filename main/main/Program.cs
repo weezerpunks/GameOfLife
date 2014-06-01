@@ -8,7 +8,7 @@ namespace Life
         private bool[,] world;
         private bool[,] nextGeneration;
         private Task processTask;
-
+        public static int[] resultat= new int[100]; 
         public LifeSimulation(int size)
         {
             if (size < 0) throw new ArgumentOutOfRangeException("Size must be greater than zero");
@@ -91,11 +91,13 @@ namespace Life
                         bool shouldLive = false;
                         bool isAlive = world[x, y];
 
+
+                        //Additionne le nombre de pattern sur cette generation si elle corespond 
                         if(isAlive && numberOfNeighbors == 3)
                         {
                             if(verfierCarree(world,Size,x,y)&&verifierContour(world,Size,x,y))
                             {
-                                nbPattern++;
+                                ecrireValeur(Program.i);
                             }
                         }
 
@@ -114,7 +116,13 @@ namespace Life
                 });
             });
         }
+        // augmenter a la position de la generation actuelle le nombre de pattern
+        private void ecrireValeur(int gen)
+        {
+            resultat[gen-1]++;
+        } 
 
+        //verifie si le point verifier est un carre
         private static bool verfierCarree(bool[,] world, int Size, int x, int y) 
         {
             int total = IsNeighborAlive(world, Size, x, y, 0, 1)
@@ -124,6 +132,7 @@ namespace Life
             return total == 3;
         } 
 
+        //si c'est un carre ( 4 point ensemble ) on verifie si le contour est vide
         private static bool verifierContour(bool [,] world,int Size,int x,int y)
         {
             int total = IsNeighborAlive(world, Size, x, y, -1, -1)
@@ -159,33 +168,51 @@ namespace Life
 
     class Program
     {
-        private static int i = 0;
+        public static int i = 0;
         static void Main(string[] args)
         {
             LifeSimulation sim = new LifeSimulation(75);
 
             int nbCells = new Random().Next(100, 500);
             Random Ran = new Random();
+
+            //met des cellule random a on 
             for (int j = 0; j < nbCells; j++){
                 sim.ToggleCell(Ran.Next(25, 75), Ran.Next(25, 75));
             }
             
             sim.BeginGeneration();
             sim.Wait();
-            OutputBoard(sim,i);
             ++i;
-
-            for (int k = 0; k <= 100;++k )
+            
+            // on fait 100 generation
+            for (int k = 0; k < 100;++k )
             {
                 sim.Update();
                 sim.Wait();
                 OutputBoard(sim, i);
                 ++i;
-                System.Threading.Thread.Sleep(100); // default 100
+                System.Threading.Thread.Sleep(1); // default 100
                 Console.Clear();
             }
+            ecrireFichier(LifeSimulation.resultat);
         }
 
+
+        //ECRIT LES DONNES RECUILLIT DANS UN FICHIER
+        private static void ecrireFichier(int[] tab)
+        {
+           System.IO.StreamWriter fichier =new System.IO.StreamWriter("C:\\www\\Resultmath.txt",true);
+
+           string test = String.Join(";", LifeSimulation.resultat);
+
+           fichier.WriteLine(test);
+
+           fichier.Close();
+
+        }
+
+        //AFFICHE LE TABLEAU DE GAME OF LIFE A LECRAN EN CONSOLE
         private static void OutputBoard(LifeSimulation sim,int i)
         {
             var line = new String('-', sim.Size);
@@ -193,13 +220,6 @@ namespace Life
             Console.WriteLine(line);
 
             Console.WriteLine("Generation : " + i);
-
-            Console.WriteLine("Pattern : " + LifeSimulation.nbPattern); //
-            if(LifeSimulation.nbPattern > 0)
-            {
-                double calcul = LifeSimulation.nbPattern / i;
-                Console.WriteLine("Moyenne :" + calcul.ToString());
-            }
             
             for (int y = 0; y < sim.Size; y++)
             {
